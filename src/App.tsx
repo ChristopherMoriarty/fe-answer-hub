@@ -1,5 +1,9 @@
-import { BookOpen, Briefcase, FileText, Loader2, Zap } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { BookOpen, Briefcase, FileText, Loader2, LogOut, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+
+import { clearSession } from './api/session'
+import { LoginScreen } from './components/auth/LoginScreen'
 
 import { BoardList } from './components/hiring/BoardList'
 import { CreateBoardModal } from './components/hiring/CreateBoardModal'
@@ -14,8 +18,10 @@ import { ThemeSwitcher } from './components/ui/ThemeSwitcher'
 import { useCvList, useUploadCv } from './hooks/useCv'
 import { useCreateBoard, useHiringBoards } from './hooks/useHiring'
 import { useCreateNode, useNodeTree, useReorderNodes } from './hooks/useNodes'
+import { useSession } from './hooks/useSession'
 import { useTheme } from './hooks/useTheme'
-import type { NodeTreeItem } from './types/node'
+import { DEFAULT_CONTENT_LANGUAGE } from './types/node'
+import { findNode } from './utils/tree'
 
 type AppView = 'topics' | 'cv' | 'applications'
 
@@ -23,16 +29,23 @@ type CreateContext =
   | { mode: 'root' }
   | { mode: 'child'; parentId: string; parentTitle: string }
 
-function findNodeTitle(items: NodeTreeItem[], id: string): string | null {
-  for (const item of items) {
-    if (item.id === id) return item.title
-    const childTitle = findNodeTitle(item.children, id)
-    if (childTitle) return childTitle
-  }
-  return null
+export default function App() {
+  const authed = useSession()
+  const queryClient = useQueryClient()
+
+  if (!authed) return <LoginScreen />
+
+  return (
+    <Workspace
+      onLogout={() => {
+        clearSession()
+        queryClient.clear()
+      }}
+    />
+  )
 }
 
-export default function App() {
+function Workspace({ onLogout }: { onLogout: () => void }) {
   const { theme, setTheme } = useTheme()
   const [view, setView] = useState<AppView>('topics')
 
@@ -89,13 +102,26 @@ export default function App() {
     return createContext.parentTitle
   }, [createContext, treeData?.items])
 
-  const handleCreate = async ({ title, kind }: { title: string; kind: NodeKind }) => {
+  const handleCreate = async ({
+    title,
+    kind,
+    language,
+  }: {
+    title: string
+    kind: NodeKind
+    language: string
+  }) => {
     if (!createContext) return
 
     const node = await createNode.mutateAsync({
       title,
       parent_id: createContext.mode === 'child' ? createContext.parentId : null,
-      content_md: kind === 'leaf' ? '#\n' : null,
+      ...(kind === 'leaf'
+        ? {
+            language: language || DEFAULT_CONTENT_LANGUAGE,
+            content_md: '#\n',
+          }
+        : {}),
     })
 
     setCreateContext(null)
@@ -103,11 +129,11 @@ export default function App() {
   }
 
   const openChildModal = (parentId: string) => {
-    const title = treeData?.items ? findNodeTitle(treeData.items, parentId) : null
+    const parent = treeData?.items ? findNode(treeData.items, parentId) : null
     setCreateContext({
       mode: 'child',
       parentId,
-      parentTitle: title ?? 'Section',
+      parentTitle: parent?.title ?? 'Section',
     })
   }
 
@@ -179,8 +205,16 @@ export default function App() {
           </ViewTab>
         </nav>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <ThemeSwitcher theme={theme} onChange={setTheme} />
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-muted)] transition hover:text-[var(--color-text)]"
+          >
+            <LogOut size={14} />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
       </header>
 
@@ -210,7 +244,13 @@ export default function App() {
               }}
               reorderError={reorderError}
             />
-            <MarkdownPanel nodeId={selectedNodeId} onDeleted={() => setSelectedNodeId(null)} />
+            <MarkdownPanel
+              nodeId={selectedNodeId}
+              treeItems={treeData?.items ?? []}
+              onSelect={setSelectedNodeId}
+              onAddChild={openChildModal}
+              onDeleted={() => setSelectedNodeId(null)}
+            />
           </>
         ) : view === 'cv' ? (
           <>
@@ -251,6 +291,7 @@ export default function App() {
         open={createContext !== null}
         parentTitle={createContext?.mode === 'child' ? parentTitle : null}
         allowLeaf={createContext?.mode === 'child'}
+        contentLanguages={treeData?.content_languages}
         isPending={createNode.isPending}
         onClose={() => setCreateContext(null)}
         onSubmit={(payload) => void handleCreate(payload)}

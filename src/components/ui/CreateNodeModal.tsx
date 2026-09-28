@@ -1,7 +1,8 @@
 import { FileText, Folder, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Modal } from '../ui/Modal'
+import { DEFAULT_CONTENT_LANGUAGE } from '../../types/node'
 
 export type NodeKind = 'section' | 'leaf'
 
@@ -9,33 +10,49 @@ interface CreateNodeModalProps {
   open: boolean
   parentTitle?: string | null
   allowLeaf?: boolean
+  contentLanguages?: Record<string, string>
   isPending?: boolean
   onClose: () => void
-  onSubmit: (payload: { title: string; kind: NodeKind }) => void
+  onSubmit: (payload: { title: string; kind: NodeKind; language: string }) => void
 }
 
 export function CreateNodeModal({
   open,
   parentTitle,
   allowLeaf = true,
+  contentLanguages,
   isPending = false,
   onClose,
   onSubmit,
 }: CreateNodeModalProps) {
+  const languages = useMemo(
+    () => Object.entries(contentLanguages ?? { [DEFAULT_CONTENT_LANGUAGE]: 'Ukrainian' }),
+    [contentLanguages],
+  )
   const [title, setTitle] = useState('')
   const [kind, setKind] = useState<NodeKind>('section')
+  const [language, setLanguage] = useState(DEFAULT_CONTENT_LANGUAGE)
 
   useEffect(() => {
     if (!open) return
     setTitle('')
     setKind(allowLeaf ? 'leaf' : 'section')
-  }, [open, allowLeaf])
+    setLanguage(
+      languages.some(([code]) => code === DEFAULT_CONTENT_LANGUAGE)
+        ? DEFAULT_CONTENT_LANGUAGE
+        : (languages[0]?.[0] ?? DEFAULT_CONTENT_LANGUAGE),
+    )
+  }, [open, allowLeaf, languages])
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     const trimmed = title.trim()
     if (!trimmed) return
-    onSubmit({ title: trimmed, kind: allowLeaf ? kind : 'section' })
+    onSubmit({
+      title: trimmed,
+      kind: allowLeaf ? kind : 'section',
+      language,
+    })
   }
 
   const description = parentTitle
@@ -106,6 +123,25 @@ export function CreateNodeModal({
               />
             </div>
           </div>
+        )}
+
+        {allowLeaf && kind === 'leaf' && (
+          <label className="block">
+            <span className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">
+              Language
+            </span>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-3 text-sm outline-none transition focus:border-[var(--color-accent)]"
+            >
+              {languages.map(([code, label]) => (
+                <option key={code} value={code}>
+                  {label} ({code.toUpperCase()})
+                </option>
+              ))}
+            </select>
+          </label>
         )}
       </form>
     </Modal>

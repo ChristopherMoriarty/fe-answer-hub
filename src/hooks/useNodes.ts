@@ -5,6 +5,7 @@ import type {
   CreateNodePayload,
   ReorderNodesPayload,
   UpdateNodePayload,
+  UpsertNodeTranslationPayload,
 } from '../types/node'
 
 export const treeKey = ['nodes', 'tree'] as const
@@ -48,6 +49,36 @@ export function useUpdateNode(id: string) {
   })
 }
 
+export function useUpsertNodeTranslation(id: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      language,
+      payload,
+    }: {
+      language: string
+      payload: UpsertNodeTranslationPayload
+    }) => nodesApi.upsertTranslation(id, language, payload),
+    onSuccess: (data) => {
+      queryClient.setQueryData(nodeKey(id), data)
+      void queryClient.invalidateQueries({ queryKey: treeKey })
+    },
+  })
+}
+
+export function useDeleteNodeTranslation(id: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (language: string) => nodesApi.deleteTranslation(id, language),
+    onSuccess: (data) => {
+      queryClient.setQueryData(nodeKey(id), data)
+      void queryClient.invalidateQueries({ queryKey: treeKey })
+    },
+  })
+}
+
 export function useDeleteNode() {
   const queryClient = useQueryClient()
 
@@ -70,4 +101,9 @@ export function useReorderNodes() {
   })
 }
 
-export type { CreateNodePayload, ReorderNodesPayload, UpdateNodePayload }
+export type {
+  CreateNodePayload,
+  ReorderNodesPayload,
+  UpdateNodePayload,
+  UpsertNodeTranslationPayload,
+}

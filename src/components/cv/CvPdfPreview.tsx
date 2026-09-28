@@ -18,21 +18,37 @@ const MAX_ZOOM = 1.8
 const ZOOM_STEP = 0.15
 
 export function CvPdfPreview({ cvId, title, filename }: CvPdfPreviewProps) {
-  const previewUrl = cvApi.previewUrl(cvId)
-  const downloadUrl = cvApi.downloadUrl(cvId)
-  const stageRef = useRef<HTMLDivElement>(null)
-
+  const [file, setFile] = useState<Blob | null>(null)
   const [numPages, setNumPages] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [baseWidth, setBaseWidth] = useState(720)
   const [loading, setLoading] = useState(true)
+  const stageRef = useRef<HTMLDivElement>(null)
+
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+    setFile(null)
     setNumPages(0)
     setZoom(1)
     setLoading(true)
     setError(null)
+
+    cvApi
+      .fetchFile(cvId)
+      .then((blob) => {
+        if (!cancelled) setFile(blob)
+      })
+      .catch((loadError: unknown) => {
+        if (cancelled) return
+        setError(loadError instanceof Error ? loadError.message : 'Could not load PDF')
+        setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [cvId])
 
   useEffect(() => {
@@ -92,15 +108,19 @@ export function CvPdfPreview({ cvId, title, filename }: CvPdfPreviewProps) {
             </ToolbarButton>
           </ToolbarGroup>
 
-          <a href={downloadUrl} className="cv-toolbar-link" download={filename}>
+          <button
+            type="button"
+            className="cv-toolbar-link"
+            onClick={() => void cvApi.download(cvId, filename)}
+          >
             <Download size={14} />
             Download
-          </a>
+          </button>
 
-          <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="cv-toolbar-link">
+          <button type="button" className="cv-toolbar-link" onClick={() => void cvApi.open(cvId)}>
             <ExternalLink size={14} />
             Open
-          </a>
+          </button>
         </div>
       </div>
 
@@ -122,11 +142,11 @@ export function CvPdfPreview({ cvId, title, filename }: CvPdfPreviewProps) {
           </div>
         )}
 
-        {!error && (
+        {!error && file && (
           <div className="cv-preview-canvas mx-auto flex w-fit flex-col items-center">
             <Document
               key={cvId}
-              file={previewUrl}
+              file={file}
               loading={null}
               onLoadSuccess={({ numPages: total }) => {
                 setNumPages(total)

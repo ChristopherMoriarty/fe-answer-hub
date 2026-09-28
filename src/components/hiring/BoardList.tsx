@@ -1,5 +1,6 @@
 import { Briefcase, Plus } from 'lucide-react'
 
+import { ResizableSidebar } from '../ui/ResizableSidebar'
 import type { HiringBoardSummary } from '../../types/hiring'
 
 interface BoardListProps {
@@ -11,7 +12,7 @@ interface BoardListProps {
 
 export function BoardList({ items, selectedId, onSelect, onCreate }: BoardListProps) {
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm">
+    <ResizableSidebar>
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">
           Applications
@@ -59,6 +60,6 @@ export function BoardList({ items, selectedId, onSelect, onCreate }: BoardListPr
           </ul>
         )}
       </div>
-    </aside>
+    </ResizableSidebar>
   )
 }

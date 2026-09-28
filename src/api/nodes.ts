@@ -5,6 +5,7 @@ import type {
   NodeTreeResponse,
   ReorderNodesPayload,
   UpdateNodePayload,
+  UpsertNodeTranslationPayload,
 } from '../types/node'
 
 const BASE = '/api/v1/nodes'
@@ -24,6 +25,21 @@ export const nodesApi = {
     apiFetch<NodeDetail>(`${BASE}/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
+    }),
+
+  upsertTranslation: (
+    id: string,
+    language: string,
+    payload: UpsertNodeTranslationPayload,
+  ) =>
+    apiFetch<NodeDetail>(`${BASE}/${id}/translations/${language}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteTranslation: (id: string, language: string) =>
+    apiFetch<NodeDetail>(`${BASE}/${id}/translations/${language}`, {
+      method: 'DELETE',
     }),
 
   delete: (id: string) =>

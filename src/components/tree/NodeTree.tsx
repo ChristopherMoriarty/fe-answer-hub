@@ -24,12 +24,14 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal'
+import { ResizableSidebar } from '../ui/ResizableSidebar'
 import { useDeleteNode } from '../../hooks/useNodes'
 import type { NodeTreeItem } from '../../types/node'
 import {
+  getAncestorIds,
   resolveReorderPayload,
   willNestOnDrop,
 } from '../../utils/tree'
@@ -74,6 +76,7 @@ function SortableTreeNode({
   onDelete,
   didDragRef,
 }: TreeNodeProps) {
+  const rowRef = useRef<HTMLDivElement | null>(null)
   const [expanded, setExpanded] = useState(true)
 
   const isSelected = selectedId === node.id
@@ -86,6 +89,17 @@ function SortableTreeNode({
     isOver &&
     dragActiveId !== null &&
     willNestOnDrop(items, dragActiveId, node.id)
+  const mustExpand =
+    selectedId !== null && getAncestorIds(items, selectedId).includes(node.id)
+
+  useEffect(() => {
+    if (mustExpand) setExpanded(true)
+  }, [mustExpand, selectedId])
+
+  useEffect(() => {
+    if (!isSelected || !rowRef.current) return
+    rowRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [isSelected])
 
   const {
     attributes,
@@ -95,6 +109,11 @@ function SortableTreeNode({
     transition,
     isDragging: isSortableDragging,
   } = useSortable({ id: node.id })
+
+  const setRefs = (element: HTMLDivElement | null) => {
+    rowRef.current = element
+    setNodeRef(element)
+  }
 
   const rowStyle: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
@@ -120,7 +139,7 @@ function SortableTreeNode({
       )}
 
       <div
-        ref={setNodeRef}
+        ref={setRefs}
         style={rowStyle}
         {...listeners}
         {...attributes}
@@ -365,7 +384,7 @@ export function NodeTree({
 
   return (
     <>
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm">
+    <ResizableSidebar>
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">
@@ -418,7 +437,7 @@ export function NodeTree({
           </div>
         </DndContext>
       )}
-    </aside>
+    </ResizableSidebar>
 
     <DeleteConfirmModal
       open={deleteTarget !== null}

@@ -238,15 +238,14 @@ export const CvPanel = forwardRef<CvPanelHandle, CvPanelProps>(function CvPanel(
             </TabButton>
           </div>
 
-          <a
-            href={cvApi.downloadUrl(cv.id)}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => void cvApi.download(cv.id, cv.original_filename)}
             className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
           >
             <Download size={15} />
             Download
-          </a>
+          </button>
 
           <button
             type="button"

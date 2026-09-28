@@ -1,5 +1,6 @@
 import { FileText, Plus, Star } from 'lucide-react'
 
+import { ResizableSidebar } from '../ui/ResizableSidebar'
 import type { CvItem } from '../../types/cv'
 import { formatDate, formatFileSize } from '../../utils/format'
 
@@ -12,7 +13,7 @@ interface CvListProps {
 
 export function CvList({ items, selectedId, onSelect, onUpload }: CvListProps) {
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm">
+    <ResizableSidebar>
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">
           CV versions
@@ -73,6 +74,6 @@ export function CvList({ items, selectedId, onSelect, onUpload }: CvListProps) {
           </ul>
         )}
       </div>
-    </aside>
+    </ResizableSidebar>
   )
 }

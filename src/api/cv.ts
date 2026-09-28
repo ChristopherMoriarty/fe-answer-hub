@@ -1,4 +1,4 @@
-import { API_BASE, apiFetch, apiUpload } from './client'
+import { apiBlob, apiFetch, apiUpload } from './client'
 import type { CvItem, CvListResponse, UpdateCvPayload, UploadCvPayload } from '../types/cv'
 
 const BASE = '/api/v1/cv'
@@ -28,7 +28,21 @@ export const cvApi = {
       method: 'DELETE',
     }),
 
-  downloadUrl: (id: string) => `${API_BASE}${BASE}/${id}/download`,
+  fetchFile: (id: string) => apiBlob(`${BASE}/${id}/file`),
 
-  previewUrl: (id: string) => `${API_BASE}${BASE}/${id}/file`,
+  download: async (id: string, filename: string) => {
+    const blob = await apiBlob(`${BASE}/${id}/download`)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(url)
+  },
+
+  open: async (id: string) => {
+    const blob = await apiBlob(`${BASE}/${id}/file`)
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener')
+  },
 }

@@ -11,6 +11,21 @@ export function findNode(items: NodeTreeItem[], id: string): NodeTreeItem | null
   return null
 }
 
+export function getAncestorIds(
+  items: NodeTreeItem[],
+  id: string,
+): string[] {
+  const ancestors: string[] = []
+  let currentId: string | null | undefined = findParentId(items, id)
+
+  while (currentId) {
+    ancestors.push(currentId)
+    currentId = findParentId(items, currentId)
+  }
+
+  return ancestors
+}
+
 export function findParentId(
   items: NodeTreeItem[],
   id: string,
